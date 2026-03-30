@@ -14,43 +14,48 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      
+
+    # 将 secrets 放到 env 里，便于 if 判断
+    env:
+      EMAIL_USERNAME: ${{ secrets.EMAIL_USERNAME }}
+      EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          
+
       - name: Install dependencies
         run: pip install requests
-        
+
       - name: Run GitHub Monitor
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python scripts/github_monitor.py
-        
+
       - name: Send Email via Gmail
-        if: ${{ secrets.EMAIL_USERNAME != '' }}
+        if: env.EMAIL_USERNAME && env.EMAIL_PASSWORD
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com
           server_port: 587
           secure: false
-          username: ${{ secrets.EMAIL_USERNAME }}
-          password: ${{ secrets.EMAIL_PASSWORD }}
+          username: ${{ env.EMAIL_USERNAME }}
+          password: ${{ env.EMAIL_PASSWORD }}
           subject: 📅 GitHub 每日活动报告 - ${{ github.run_id }}
           to: ${{ secrets.EMAIL_TO }}
-          from: GitHub Monitor <${{ secrets.EMAIL_USERNAME }}>
+          from: GitHub Monitor <${{ env.EMAIL_USERNAME }}>
           html_body: |
             <h2>📅 每日 GitHub 活动报告</h2>
-            <p>监控范围：sonic-net + FRRouting（14个仓库）</p >
-            <p>报告已生成，请查看附件。</p >
-            <p>🔗 <a href=" ">查看运行详情</a ></p >
+            <p>监控范围：sonic-net + FRRouting（14个仓库）</p>
+            <p>报告已生成，请查看附件。</p>
+            <p>🔗 <a href="#">查看运行详情</a></p>
           attachments: reports/*.md
-          
+
       - name: Upload report
         uses: actions/upload-artifact@v4
         with:
